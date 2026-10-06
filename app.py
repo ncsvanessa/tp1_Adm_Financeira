@@ -39,6 +39,9 @@ CORES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
 # Primeiro ano com DFP disponível nos dados abertos da CVM
 PRIMEIRO_ANO_CVM = 2010
 
+# Modelo de CSV em branco, oferecido para download na opção "Arquivo CSV"
+ARQUIVO_MODELO = Path(__file__).resolve().parent / "dados" / "modelo_empresa.csv"
+
 # Nível do diagnóstico -> (caixa colorida do Streamlit, ícone). O ícone garante que o
 # tipo de comentário não dependa só da cor (acessibilidade para daltônicos).
 CAIXA_DIAGNOSTICO = {"ok": (st.success, "✅"), "atencao": (st.warning, "⚠️"),
@@ -85,7 +88,8 @@ def formulario():
     if fonte.startswith("CVM"):
         pedido["fonte"] = "cvm"
         termo = st.sidebar.text_input("Nome (ou parte do nome) da empresa", "weg",
-                                      help="Ex.: weg, ambev, natura, embraer. Bancos e seguradoras não são suportados.")
+                                      help="Ex.: weg, ambev, natura, embraer. "
+                                           "Bancos e seguradoras não são suportados.")
         anos = st.sidebar.multiselect("Exercícios", list(range(PRIMEIRO_ANO_CVM, ULTIMO_ANO + 1)), ANOS_PADRAO,
                                       help="Escolha ao menos dois anos para ter análise horizontal e DuPont.")
         if not termo.strip() or not anos:
@@ -105,7 +109,7 @@ def formulario():
             return None
 
         # Lista as empresas encontradas para o usuário escolher a certa
-        rotulos = [f"{l.DENOM_CIA} (CVM {int(l.CD_CVM)})" for l in achadas.itertuples()]
+        rotulos = [f"{linha.DENOM_CIA} (CVM {int(linha.CD_CVM)})" for linha in achadas.itertuples()]
         escolha = st.sidebar.selectbox(f"Empresa ({len(achadas)} encontrada(s))", range(len(rotulos)),
                                        format_func=lambda i: rotulos[i])
         pedido["cd_cvm"] = int(achadas.at[escolha, "CD_CVM"])
@@ -120,8 +124,9 @@ def formulario():
     elif fonte == "Arquivo CSV":
         pedido["fonte"] = "csv"
         arquivo = st.sidebar.file_uploader("Arquivo CSV", type=["csv"],
-                                           help="Use o formato de dados/modelo_empresa.csv (uma conta por linha, um ano por coluna).")
-        st.sidebar.download_button("Baixar modelo em branco", (Path(__file__).parent / "dados" / "modelo_empresa.csv").read_bytes(),
+                                           help="Use o formato de dados/modelo_empresa.csv "
+                                                "(uma conta por linha, um ano por coluna).")
+        st.sidebar.download_button("Baixar modelo em branco", ARQUIVO_MODELO.read_bytes(),
                                    "modelo_empresa.csv", "text/csv")
         if arquivo is None:
             st.sidebar.info("Envie um arquivo CSV preenchido.")
@@ -292,15 +297,19 @@ def cartoes(ind):
                  ("divida_liquida_ebitda", "x", False), ("ciclo_caixa", "dias", False)]
     for coluna, (chave, unidade, subir_bom) in zip(st.columns(len(destaques)), destaques):
         valor = ind.at[chave, atual]
-        delta = None
+        delta, cor = None, "normal" if subir_bom else "inverse"
         if anterior is not None and not pd.isna(valor) and not pd.isna(ind.at[chave, anterior]):
             dif = valor - ind.at[chave, anterior]
+            # arredonda na precisão exibida, para uma variação ínfima não aparecer como "-0,0" em vermelho
+            dif = round(dif, {"%": 3, "x": 2, "dias": 0}[unidade])
+            if dif == 0:
+                dif, cor = 0.0, "off"   # sem variação: seta e cor neutras
             # variação de percentuais em pontos percentuais (p.p.); demais na própria unidade
             delta = f"{relatorio._br(dif * 100, 1)} p.p." if unidade == "%" else relatorio.formatar(dif, unidade)
             delta = ("+" if dif > 0 else "") + delta
-        coluna.metric(indicadores.POR_CHAVE[chave].nome.split(" - ")[0], relatorio.formatar(valor, unidade),
-                      delta, delta_color="normal" if subir_bom else "inverse",
-                      help=f"{indicadores.POR_CHAVE[chave].formula} · variação em relação a {anterior}" if anterior else None)
+        meta = indicadores.POR_CHAVE[chave]
+        coluna.metric(meta.nome.split(" - ")[0], relatorio.formatar(valor, unidade), delta, delta_color=cor,
+                      help=f"{meta.formula} · variação em relação a {anterior}" if anterior else None)
 
 
 def mostrar_resultados(r):
@@ -313,7 +322,8 @@ def mostrar_resultados(r):
     if meta.get("cd_cvm"):
         detalhes.append(f"código CVM {meta['cd_cvm']}")
     if r["mercado"]:
-        detalhes.append(f"valor de mercado {relatorio.formatar(r['mercado']['valor_mercado'], 'R$')} ({r['mercado']['fonte']})")
+        valor_mercado = relatorio.formatar(r["mercado"]["valor_mercado"], "R$")
+        detalhes.append(f"valor de mercado {valor_mercado} ({r['mercado']['fonte']})")
     st.caption(" · ".join(detalhes))
 
     cartoes(ind)
@@ -343,8 +353,8 @@ def mostrar_resultados(r):
                                        "Prazos médios e ciclo de caixa (dias)", "dias"), width="stretch")
         estrutura = [(captura.DESCRICAO_CONTAS[c], df.loc[c] / df.loc["passivo_total"] * 100)
                      for c in ["passivo_circulante", "passivo_nao_circulante", "patrimonio_liquido"]]
-        c1.plotly_chart(grafico_barras(df, estrutura, "Estrutura de financiamento (% do passivo total)", empilhado=True),
-                        width="stretch")
+        c1.plotly_chart(grafico_barras(df, estrutura, "Estrutura de financiamento (% do passivo total)",
+                                       empilhado=True), width="stretch")
         fluxos = [("Operacional", df.loc["fco"] / 1e6), ("Investimento", df.loc["fci"] / 1e6),
                   ("Financiamento", df.loc["fcf"] / 1e6)]
         c2.plotly_chart(grafico_barras(df, fluxos, "Fluxos de caixa por atividade (R$ milhões)"), width="stretch")

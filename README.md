@@ -35,7 +35,7 @@ Abre no navegador uma página com formulário na barra lateral (CVM, upload de C
 | `python main.py --fonte cvm --empresa weg` | Busca a empresa pelo nome nos dados abertos da CVM |
 | `python main.py --fonte cvm --cd-cvm 5410 --ticker WEGE3` | Código CVM + índices de mercado |
 | `python main.py --fonte cvm --empresa ambev --anos 2021 2022 2023 2024` | Escolhe os exercícios |
-| `python main.py --fonte csv --arquivo dados/modelo_empresa.csv --nome "Minha Empresa"` | Dados próprios em CSV |
+| `python main.py --fonte csv --arquivo dados/exemplo_empresa.csv --nome "Minha Empresa"` | Dados em CSV (para dados próprios, preencha uma cópia de `dados/modelo_empresa.csv`) |
 | `python main.py --fonte exemplo --valor-mercado 1500000000` | Valor de mercado informado manualmente |
 
 Na primeira execução com a CVM, cada ano baixa um arquivo de algumas dezenas de MB, guardado em `cache/` para as execuções seguintes. Os relatórios são salvos em `relatorios/`.
@@ -75,7 +75,7 @@ dados/           # empresa de exemplo (fictícia) e modelo de CSV
 
 ## Limitações
 
-- Bancos e seguradoras usam plano de contas diferente e não são suportados.
+- Bancos e seguradoras que usam o plano de contas de instituição financeira não são suportados (a aplicação detecta e avisa).
 - Arrendamentos (IFRS 16) não entram na dívida.
 - Índices usam saldos de final de período, não médias.
 - Índices de mercado usam a cotação atual e são calculados apenas para o último exercício.
