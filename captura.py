@@ -285,6 +285,15 @@ def capturar_cvm(cd_cvm, anos):
         if dfc.empty:
             dfc = _filtrar_empresa(_ler_csv_do_zip(caminho, f"_DFC_MD_{tipo}_{ano}"), cd_cvm)
 
+        # Instituições financeiras usam outro plano de contas: nelas a conta
+        # 1.01 não é o "Ativo Circulante" (nos bancos é "Caixa e Equivalentes").
+        # Os códigos de MAPA_CONTAS apontariam para contas erradas e o relatório
+        # sairia sem sentido, por isso a análise é interrompida.
+        desc_101 = bpa.loc[bpa["CD_CONTA"] == "1.01", "DS_CONTA"]
+        if desc_101.empty or "circulante" not in _sem_acento(desc_101.iloc[0]):
+            raise ValueError(f"{bpa['DENOM_CIA'].iloc[0]} usa o plano de contas de instituição "
+                             "financeira (banco/seguradora), que esta aplicação não suporta.")
+
         tabelas = {"BPA": bpa, "BPP": bpp, "DRE": dre, "DFC": dfc}
 
         # Contas com código fixo
@@ -301,11 +310,6 @@ def capturar_cvm(cd_cvm, anos):
         meta["nome"] = bpa["DENOM_CIA"].iloc[0]
         meta["cnpj"] = bpa["CNPJ_CIA"].iloc[0]
         meta["tipo_demonstracao"] = "Consolidada" if tipo == "con" else "Individual"
-
-        # Aviso para instituições financeiras: o plano de contas delas é
-        # diferente e os índices desta aplicação não se aplicam.
-        if pd.isna(valores["ativo_circulante"]) and pd.isna(valores["receita"]):
-            print("  Aviso: plano de contas atípico (banco/seguradora?). Os índices podem não fazer sentido.")
 
     if not dados:
         raise ValueError("Nenhum dado encontrado para a empresa/anos informados.")
@@ -347,6 +351,10 @@ def capturar_csv(caminho, nome=None):
         print(f"  Aviso: contas ausentes no arquivo (índices dependentes ficarão vazios): {faltando}")
 
     df = df.reindex(CONTAS_PADRAO)[sorted(df.columns)]
+    # Um arquivo sem nenhum valor (ex.: o modelo em branco) geraria um relatório vazio
+    if df.isna().all().all():
+        raise ValueError(f"o arquivo {caminho.name} não tem valores preenchidos "
+                         "(preencha os valores de cada conta e ano).")
     meta = {"fonte": f"Arquivo local: {caminho.name}",
             "nome": nome or caminho.stem.replace("_", " ").title(),
             "cnpj": None, "cd_cvm": None, "tipo_demonstracao": "Conforme arquivo"}

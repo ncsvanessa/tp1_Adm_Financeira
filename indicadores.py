@@ -334,7 +334,10 @@ def diagnostico(df, ind, mercado=None):
 
     # 1) Consistência dos dados (Eq. 2.1)
     dif = verificar_balanco(df)
-    if (dif.abs() > 0.005).any():
+    if dif.isna().any():  # sem ativo total ou passivo total não há como verificar
+        msgs.append(("atencao", "Não foi possível verificar a identidade Ativo = Passivo + PL (Eq. 2.1) "
+                                "em todos os anos: faltam o ativo total ou o passivo total."))
+    elif (dif.abs() > 0.005).any():
         msgs.append(("alerta", "A identidade Ativo = Passivo + PL (Eq. 2.1) não fecha em algum ano; "
                                "revise os dados de entrada."))
     else:

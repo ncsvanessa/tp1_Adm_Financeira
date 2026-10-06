@@ -1,7 +1,9 @@
 """
 main.py
 =======
-TP1 - Administração Financeira
+TP1 - Administração Financeira (CAD 167) - UFMG - 2º semestre de 2026
+Professor: Bruno Pérez Ferreira
+Autores: Lucas Dolabella de Castro Lopes e Vanessa Nascimento Silva
 Tema: ANÁLISE DE DEMONSTRAÇÕES FINANCEIRAS
 
 Aplicação que:
@@ -78,16 +80,28 @@ def menu_interativo(args):
     print("  1 - CVM (dados oficiais de companhias abertas; requer internet)")
     print("  2 - Arquivo CSV próprio")
     print("  3 - Empresa de exemplo (dados fictícios, funciona offline)")
-    opcao = perguntar("Opção", "1")
-    args.fonte = {"1": "cvm", "2": "csv", "3": "exemplo"}.get(opcao, "exemplo")
+    # Repete a pergunta até receber uma opção válida
+    fontes = {"1": "cvm", "2": "csv", "3": "exemplo"}
+    while (opcao := perguntar("Opção", "1")) not in fontes:
+        print("  Opção inválida: digite 1, 2 ou 3.")
+    args.fonte = fontes[opcao]
 
     if args.fonte == "cvm":
+        print("  (a base da CVM contém apenas companhias abertas brasileiras, ex.: weg, ambev, natura)")
         args.empresa = perguntar("Nome (ou parte do nome) da empresa", "weg")
-        anos = perguntar("Anos (separados por espaço)", " ".join(map(str, ANOS_PADRAO)))
-        args.anos = [int(a) for a in anos.split()]
+        # Repete a pergunta até que todos os anos sejam números de 4 dígitos
+        while True:
+            anos = perguntar("Anos (separados por espaço)", " ".join(map(str, ANOS_PADRAO))).split()
+            if anos and all(a.isdigit() and len(a) == 4 for a in anos):
+                args.anos = [int(a) for a in anos]
+                break
+            print("  Anos inválidos: use números como 2023 2024.")
         args.ticker = perguntar("Ticker na B3 para índices de mercado (Enter para pular)", "") or None
     elif args.fonte == "csv":
-        args.arquivo = perguntar("Caminho do arquivo CSV", str(PASTA_BASE / "dados" / "modelo_empresa.csv"))
+        # Padrão: o CSV de exemplo (já preenchido). O modelo_empresa.csv vem em branco
+        # e serve de ponto de partida para o usuário digitar os dados da sua empresa.
+        print("  (para dados próprios, preencha uma cópia de dados/modelo_empresa.csv)")
+        args.arquivo = perguntar("Caminho do arquivo CSV", str(PASTA_BASE / "dados" / "exemplo_empresa.csv"))
         args.nome = perguntar("Nome da empresa", None)
     return args
 
@@ -102,7 +116,9 @@ def escolher_empresa_cvm(args):
     print(f"\nBuscando '{args.empresa}' na base da CVM...")
     achadas = captura.buscar_empresas(args.empresa, max(args.anos))
     if achadas.empty:
-        sys.exit("Nenhuma companhia encontrada com esse nome.")
+        sys.exit("Nenhuma companhia encontrada com esse nome. Lembre que a CVM só tem companhias "
+                 "abertas brasileiras\n(ex.: weg, ambev, natura, embraer; a Petrobras está como "
+                 "'petroleo brasileiro').")
     if len(achadas) == 1:
         return int(achadas.at[0, "CD_CVM"])
     print("Mais de uma empresa encontrada:")
@@ -110,8 +126,12 @@ def escolher_empresa_cvm(args):
         print(f"  {i + 1:>2} - {linha['DENOM_CIA']} (CVM {int(linha['CD_CVM'])}, CNPJ {linha['CNPJ_CIA']})")
     if not sys.stdin.isatty():  # execução não interativa: usa o primeiro resultado
         return int(achadas.at[0, "CD_CVM"])
-    escolha = int(perguntar("Número da empresa", "1")) - 1
-    return int(achadas.at[escolha, "CD_CVM"])
+    # Repete a pergunta até receber um número válido da lista
+    while True:
+        resposta = perguntar("Número da empresa", "1")
+        if resposta.isdigit() and 1 <= int(resposta) <= len(achadas):
+            return int(achadas.at[int(resposta) - 1, "CD_CVM"])
+        print(f"  Opção inválida: digite um número de 1 a {len(achadas)}.")
 
 
 # ---------------------------------------------------------------------------
@@ -119,6 +139,8 @@ def escolher_empresa_cvm(args):
 # ---------------------------------------------------------------------------
 
 def main():
+    """Executa as três etapas da aplicação: captura dos dados, cálculo dos
+    indicadores e geração dos relatórios (terminal, HTML e Excel)."""
     args = ler_argumentos()
     if args.fonte is None:          # sem parâmetros -> menu interativo
         args = menu_interativo(args)
@@ -170,4 +192,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):  # Ctrl+C / Ctrl+D durante as perguntas
+        print("\nExecução cancelada pelo usuário.")
+        sys.exit(130)

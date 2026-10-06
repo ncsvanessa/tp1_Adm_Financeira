@@ -1,5 +1,9 @@
 # TP1 — Administração Financeira: Análise de Demonstrações Financeiras
 
+- **Disciplina:** Administração Financeira (CAD 167) — UFMG, 2º semestre de 2026
+- **Professor:** Bruno Pérez Ferreira
+- **Autores:** Lucas Dolabella de Castro Lopes e Vanessa Nascimento Silva
+
 Aplicação em Python que **captura** as demonstrações financeiras de uma empresa, **calcula** os índices do Capítulo 2 de Berk, DeMarzo & Harford (*Fundamentos de Finanças Empresariais*) e **gera relatórios** (terminal, HTML com gráficos e planilha Excel).
 
 ## Instalação

@@ -343,8 +343,9 @@ def imprimir_resumo(ind, diag, meta):
         if m.categoria != categoria:
             categoria = m.categoria
             print(f"\n[{categoria}]")
-            print(f"  {'':46}" + "".join(f"{a:>14}" for a in ind.columns))
-        print(f"  {m.nome[:46]:46}" + "".join(f"{formatar(v, m.unidade):>14}" for v in ind.loc[chave]))
+            print(f"  {'':46}" + "".join(f"{a:>17}" for a in ind.columns))
+        # largura 17: comporta valores como "R$ -12.345,6 mi" sem colar na coluna vizinha
+        print(f"  {m.nome[:46]:46}" + "".join(f"{formatar(v, m.unidade):>17}" for v in ind.loc[chave]))
     print("\nDIAGNÓSTICO")
     for nivel, texto in diag:
         print(f"  {ROTULO_NIVEL[nivel]:<15} {texto}")
