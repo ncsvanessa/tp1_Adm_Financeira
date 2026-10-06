@@ -1,0 +1,9 @@
+# Configuração da interface web (streamlit run app.py)
+
+[client]
+# Esconde o botão "Deploy" e as opções de desenvolvedor do menu
+toolbarMode = "minimal"
+
+[browser]
+# Não envia estatísticas de uso ao Streamlit
+gatherUsageStats = false

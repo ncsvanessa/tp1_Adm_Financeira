@@ -3,5 +3,8 @@ numpy>=1.23
 matplotlib>=3.6
 openpyxl>=3.0
 requests>=2.28
+# Interface web (streamlit run app.py)
+streamlit>=1.50
+plotly>=5.19
 # Opcional: cotação atual para os índices de mercado (--ticker)
 yfinance>=0.2.40

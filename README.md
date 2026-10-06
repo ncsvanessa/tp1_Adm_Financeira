@@ -9,12 +9,24 @@ Aplicação em Python que **captura** as demonstrações financeiras de uma empr
 ## Instalação
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Requer Python 3.9+. O pacote `yfinance` é opcional (só é usado com `--ticker`).
+Requer Python 3.9+. O pacote `yfinance` é opcional (só é usado com o ticker).
 
 ## Execução
+
+### Interface web (recomendada)
+
+```bash
+streamlit run app.py
+```
+
+Abre no navegador uma página com formulário na barra lateral (CVM, upload de CSV ou exemplo), cartões com os principais índices, gráficos interativos, diagnóstico e botões para baixar o relatório HTML e a planilha Excel.
+
+### Terminal
 
 | Comando | O que faz |
 |---|---|
@@ -53,7 +65,8 @@ Também são geradas as análises **vertical** e **horizontal**, a verificação
 ## Estrutura
 
 ```
-main.py          # fluxo principal: argumentos, menu, orquestração
+app.py           # interface web (Streamlit)
+main.py          # versão de terminal: argumentos, menu, orquestração
 captura.py       # download e leitura da CVM, CSV local, dados de mercado
 indicadores.py   # índices, análises vertical/horizontal, DuPont, diagnóstico
 relatorio.py     # terminal, HTML com gráficos (matplotlib) e Excel
